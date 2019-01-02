@@ -1,0 +1,8 @@
+terraform {
+  backend "s3" {
+    bucket = "{{project_name}}-{{environment}}-terraform-remote-state"
+    key = "{{project_name}}/{{environment}}"
+    region = "{{region}}"
+    encrypt = true
+  }
+}

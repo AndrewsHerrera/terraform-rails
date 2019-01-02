@@ -1,0 +1,10 @@
+resource "aws_s3_bucket" "remote_state" {
+  bucket = "{{project_name}}-{{environment}}-terraform-remote-state"
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
+
+  force_destroy = {{force_destroy}}
+}

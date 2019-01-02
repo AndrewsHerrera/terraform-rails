@@ -1,0 +1,3 @@
+OkComputer::Registry.register 'ruby_version', OkComputer::RubyVersionCheck.new
+OkComputer::Registry.register 'active_record', OkComputer::ActiveRecordCheck.new
+# OkComputer::Registry.register 'redis_status', OkComputer::RedisCheck.new(url: ENV['REDIS_URL'])
