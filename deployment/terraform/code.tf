@@ -409,7 +409,6 @@ data "template_file" "secrets" {
   template = "${file("./files/secrets.json")}"
 
   vars {
-    environment     = "${var.environment}"
     secret_key_base = "${var.secret_key_base}"
     database_url    = "postgres://${aws_db_instance.db.username}:${var.rds_password}@${aws_db_instance.db.endpoint}/${aws_db_instance.db.name}"
   }

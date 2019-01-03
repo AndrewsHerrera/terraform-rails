@@ -6,6 +6,10 @@
     "image": "${docker_image}",
     "environment": [
       {
+        "name":  "RAILS_ENV",
+        "value": "${environment}"
+      },
+      {
         "name":  "AWS_SECRETS_GROUP",
         "value": "${aws_secret_group}"
       },
