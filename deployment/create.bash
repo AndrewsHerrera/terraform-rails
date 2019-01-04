@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ -n "$TF_VAR_project_name" ] && [ -n "$TF_VAR_environment" ] && [ -n "$TF_VAR_rds_password" ] && [ -n "$TF_VAR_route53_domain" ] && [ -n "$TF_VAR_region" ]
+if [ -n "$AWS_PROFILE" ] && [ -n "$TF_VAR_project_name" ] && [ -n "$TF_VAR_environment" ] && [ -n "$TF_VAR_rds_password" ] && [ -n "$TF_VAR_route53_domain" ] && [ -n "$TF_VAR_region" ]
 then
   mv ../config/database.yml ../config/database.yml.tmp
   cat templates/database.yml.template | \
@@ -79,6 +79,7 @@ then
   docker push $ecr_repository_url':latest'
 else
   echo "You have to export these variables"
+  echo "export AWS_PROFILE=$AWS_PROFILE"
   echo "export TF_VAR_project_name=$TF_VAR_project_name"
   echo "export TF_VAR_environment=$TF_VAR_environment"
   echo "export TF_VAR_rds_password=$TF_VAR_rds_password"
