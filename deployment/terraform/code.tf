@@ -230,13 +230,47 @@ resource "aws_key_pair" "ssh_key" {
   public_key = "${var.ssh_public_key}"
 }
 
+resource "aws_iam_role" "ecs_instance_role" {
+  name = "ecsInstanceRole"
+  assume_role_policy = <<EOF
+{
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Sid": ""
+    }
+  ],
+  "Version": "2012-10-17"
+}
+EOF
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ecs-instance-role"
+  }
+}
+
+resource "aws_iam_policy_attachment" "attach_ecs_instance_policy" {
+  name       = "ecsInstanceRolePolicyAttachment"
+  roles      = ["${aws_iam_role.ecs_instance_role.name}"]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
+resource "aws_iam_instance_profile" "ecs_instance_profile" {
+  name  = "ecsInstanceProfile"
+  role = "${aws_iam_role.ecs_instance_role.name}"
+}
+
 resource "aws_launch_configuration" "launch_configuration" {
   name                 = "${var.project_name}-${var.environment}-${var.date}"
   image_id             = "${data.aws_ami.ecs_ami.id}"
   instance_type        = "${var.ec2_instance_type}"
   user_data            = "${data.template_file.user_data.rendered}"
   key_name             = "${var.key_pair_name}"
-  iam_instance_profile = "ecsInstanceRole"
+  iam_instance_profile = "${aws_iam_instance_profile.ecs_instance_profile.name}"
   enable_monitoring    = "${var.enable_monitoring}"
   security_groups      = ["${aws_security_group.internal.id}", "${aws_security_group.ssh.id}", "${aws_security_group.http.id}", "${aws_security_group.https.id}"]
 
@@ -445,12 +479,41 @@ resource "aws_iam_user_policy" "secrets" {
   policy = "${data.template_file.secrets_policy.rendered}"
 }
 
+resource "aws_iam_role" "ecs_service_role" {
+  name = "ecsServiceRole"
+  assume_role_policy = <<EOF
+{
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs.amazonaws.com"
+      },
+      "Sid": ""
+    }
+  ],
+  "Version": "2012-10-17"
+}
+EOF
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ecs-service-role"
+  }
+}
+
+resource "aws_iam_policy_attachment" "attach_ecs_service_policy" {
+  name       = "ecsServiceRolePolicyAttachment"
+  roles      = ["${aws_iam_role.ecs_service_role.name}"]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
+}
+
 resource "aws_ecs_service" "ecs_service" {
   name                               = "${var.project_name}-${var.environment}"
   cluster                            = "${aws_ecs_cluster.cluster.id}"
   task_definition                    = "${aws_ecs_task_definition.task_definition.arn}"
   desired_count                      = "${var.desired_count}"
-  iam_role                           = "ecsServiceRole"
+  iam_role                           = "${aws_iam_role.ecs_service_role.name}"
   health_check_grace_period_seconds  = "${var.health_check_grace_period_seconds}"
   deployment_minimum_healthy_percent = "${var.deployment_minimum_healthy_percent}"
   depends_on                         = ["aws_lb_listener_rule.redirect_http_to_https", "aws_iam_user_policy.secrets"]
