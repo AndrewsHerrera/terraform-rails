@@ -231,7 +231,7 @@ resource "aws_key_pair" "ssh_key" {
 }
 
 resource "aws_iam_role" "ecs_instance_role" {
-  name = "ecsInstanceRole"
+  name = "${var.project_name}-${var.environment}-ecs-instance-role"
   assume_role_policy = <<EOF
 {
   "Statement": [
@@ -253,14 +253,14 @@ EOF
   }
 }
 
-resource "aws_iam_policy_attachment" "attach_ecs_instance_policy" {
-  name       = "ecsInstanceRolePolicyAttachment"
+resource "aws_iam_policy_attachment" "ecs_instance_policy_attachment" {
+  name       = "${var.project_name}-${var.environment}-ecs-instance-policy-attachment"
   roles      = ["${aws_iam_role.ecs_instance_role.name}"]
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
 resource "aws_iam_instance_profile" "ecs_instance_profile" {
-  name  = "ecsInstanceProfile"
+  name  = "${var.project_name}-${var.environment}-ecs-instance-profile"
   role = "${aws_iam_role.ecs_instance_role.name}"
 }
 
@@ -480,7 +480,7 @@ resource "aws_iam_user_policy" "secrets" {
 }
 
 resource "aws_iam_role" "ecs_service_role" {
-  name = "ecsServiceRole"
+  name = "${var.project_name}-${var.environment}-ecs-service-role"
   assume_role_policy = <<EOF
 {
   "Statement": [
@@ -502,8 +502,8 @@ EOF
   }
 }
 
-resource "aws_iam_policy_attachment" "attach_ecs_service_policy" {
-  name       = "ecsServiceRolePolicyAttachment"
+resource "aws_iam_policy_attachment" "ecs_service_policy_attachment" {
+  name       = "${var.project_name}-${var.environment}-ecs-service-policy-attachment"
   roles      = ["${aws_iam_role.ecs_service_role.name}"]
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
 }
