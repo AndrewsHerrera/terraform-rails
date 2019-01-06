@@ -2,26 +2,28 @@ FROM ruby:{{project_ruby_version}}-alpine
 LABEL Author="Andrews Herrera <andrews.herrera@koombea.com>"
 RUN ln -sf /usr/share/zoneinfo/GMT /etc/localtime
 ENV SECRET_KEY_BASE=2fdea1259c6660852864f9726616df64c8cd \
-RAILS_LOG_TO_STDOUT=enabled \
-RAILS_SERVE_STATIC_FILES=enabled \
-BUNDLE_WITHOUT="development test" \
-APP=/usr/src/app/ \
-RAILS_ENV=production \
-BUILD_PACKAGES="build-base" \
-DEV_PACKAGES="git libxml2-dev libxslt-dev openssl" \
-RUNTIME_PACKAGES="postgresql-dev tzdata nodejs"
+  RAILS_LOG_TO_STDOUT=enabled \
+  RAILS_SERVE_STATIC_FILES=enabled \
+  BUNDLE_WITHOUT="development test" \
+  APP=/usr/src/app/ \
+  RAILS_ENV=production \
+  BUILD_PACKAGES="build-base" \
+  DEV_PACKAGES="git libxml2-dev libxslt-dev openssl" \
+  RUNTIME_PACKAGES="postgresql-dev tzdata nodejs"
 WORKDIR $APP
 COPY Gemfile* $APP
-RUN set -ex \
-&& apk add --upgrade --no-cache --virtual .app-builddeps \
-$BUILD_PACKAGES \
-$DEV_PACKAGES \
-&& apk add --no-cache --virtual .app-rundeps $RUNTIME_PACKAGES \
-&& bundle install --jobs 2 --retry 5 --without $BUNDLE_WITHOUT \
-&& apk del .app-builddeps \
-&& npm install --global yarn
+RUN set -ex && \
+  apk add --upgrade --no-cache --virtual .app-builddeps \
+  $BUILD_PACKAGES \
+  $DEV_PACKAGES && \
+  apk add --no-cache --virtual .app-rundeps $RUNTIME_PACKAGES && \
+  bundle install --jobs 2 --retry 5 --without $BUNDLE_WITHOUT && \
+  apk del .app-builddeps && \
+  npm install --global yarn
 ENV PATH="$PATH:/usr/local/bundle/bin/"
 COPY . $APP
-RUN rm -rf  ${APP}config/initializers && rails assets:precompile
+RUN rm -rf  ${APP}config/initializers && \
+  rails assets:precompile
+COPY config/initializers ${APP}config/initializers/
 ENTRYPOINT ["./bin/entrypoint"]
 CMD ["rails", "s", "-b", "0.0.0.0"]
