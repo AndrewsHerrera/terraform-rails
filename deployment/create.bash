@@ -31,7 +31,7 @@ then
   docker build -t $TF_VAR_project_name ../
   mv ../config/database.yml.tmp ../config/database.yml
   export TF_VAR_date=$(date +%F-%s)
-  export TF_VAR_secret_key_base=$(docker run $TF_VAR_project_name':latest' rake secret)
+  export TF_VAR_secret_key_base=$(docker run -e RUN_MIGRATIONS=false $TF_VAR_project_name':latest' rake secret)
   export TF_VAR_key_pair_name=$(cat ~/.ssh/id_rsa.pub | head -n 1 | awk '{ print $3 }')"($TF_VAR_project_name-$TF_VAR_environment)"
   export TF_VAR_ssh_public_key=$(cat ~/.ssh/id_rsa.pub | head -n 1)
   cd terraform
