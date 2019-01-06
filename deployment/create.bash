@@ -74,6 +74,13 @@ then
   yes yes | terraform init
   cd ..
   rm -rf terraform/.terraform terraform/terraform.*
+  cat templates/buildspec.yml.template | \
+  sed "s/{{project_name}}/$TF_VAR_project_name/" | \
+  sed "s/{{environment}}/$TF_VAR_environment/" | \
+  sed "s/{{route53_domain}}/$TF_VAR_route53_domain/" | \
+  sed "s/{{region}}/$TF_VAR_region/" | \
+  sed "s/{{ecr_repository_url}}/${ecr_repository_url/com/com\\}/" \
+  > ../buildspec.yml
   $(aws ecr get-login --no-include-email --region us-east-1)
   docker tag $TF_VAR_project_name':latest' $ecr_repository_url':latest'
   docker push $ecr_repository_url':latest'
