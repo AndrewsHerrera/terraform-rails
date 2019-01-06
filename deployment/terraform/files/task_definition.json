@@ -24,10 +24,6 @@
       {
         "name":  "AWS_SECRET_ACCESS_KEY",
         "value": "${aws_secret_access_key}"
-      },
-      {
-        "name":  "RUN_MIGRATIONS",
-        "value": "enabled"
       }
     ],
     "essential": true,

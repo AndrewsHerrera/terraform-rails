@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-if [ -n "$RUN_MIGRATIONS" ]
+if ! [ "$RUN_MIGRATIONS" == "false" ]
 then
   rake db:migrate
 fi
