@@ -1,7 +1,8 @@
 FROM ruby:{{project_ruby_version}}-alpine
 LABEL Author="Andrews Herrera <andrews.herrera@koombea.com>"
 RUN ln -sf /usr/share/zoneinfo/GMT /etc/localtime
-ENV RAILS_LOG_TO_STDOUT=enabled \
+ENV SECRET_KEY_BASE=2fdea1259c6660852864f9726616df64c8cd \
+RAILS_LOG_TO_STDOUT=enabled \
 RAILS_SERVE_STATIC_FILES=enabled \
 BUNDLE_WITHOUT="development test" \
 APP=/usr/src/app/ \
@@ -21,6 +22,6 @@ $DEV_PACKAGES \
 && npm install --global yarn
 ENV PATH="$PATH:/usr/local/bundle/bin/"
 COPY . $APP
-RUN rails assets:precompile && printf "\nget_secret()\n" >> ${APP}config/initializers/0_aws_secrets.rb
+RUN rm -rf  ${APP}config/initializers && rails assets:precompile
 ENTRYPOINT ["./bin/entrypoint"]
 CMD ["rails", "s", "-b", "0.0.0.0"]
