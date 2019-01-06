@@ -10,6 +10,10 @@ variable "key_pair_name" {} # set by create.bash
 variable "ssh_public_key" {} # set by create.bash
 variable "secret_key_base" {} # set by create.bash
 
+variable "docker_image" {
+  default = "latest"
+}
+
 variable "retention_in_days" {
   default = 30
 }
