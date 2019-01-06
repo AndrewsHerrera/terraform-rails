@@ -1,0 +1,37 @@
+version: 0.2
+
+env:
+  variables:
+    TF_VAR_project_name: "{{project_name}}"
+    TF_VAR_environment: "{{environment}}"
+    TF_VAR_route53_domain: "{{route53_domain}}"
+    TF_VAR_region: "{{region}}"
+    TF_VAR_rds_password: "whatever"
+    TF_VAR_date: "whatever"
+    TF_VAR_secret_key_base: "whatever"
+    TF_VAR_key_pair_name: "whatever"
+    TF_VAR_ssh_public_key: "whatever"
+
+phases:
+  install:
+    commands:
+      - apt-get update -y
+      - wget https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip
+      - unzip terraform_0.11.11_linux_amd64.zip
+      - mv terraform /usr/local/bin/
+  pre_build:
+    commands:
+      - $(aws ecr get-login --no-include-email --region us-east-1)
+      - date=$(date +%F-%s)
+  build:
+    commands:
+      - chmod 700 $CODEBUILD_SRC_DIR/bin/entrypoint
+      - docker build -t {{project_name}} .
+      - docker tag {{project_name}}:latest {{ecr_repository_url}}:$date
+      - docker push {{ecr_repository_url}}:$date
+  post_build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR/deployment/terraform
+      - terraform init
+      - TF_VAR_docker_image=$date
+      - terraform apply -target="aws_ecs_service.ecs_service" --auto-approve
