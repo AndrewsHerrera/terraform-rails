@@ -177,7 +177,7 @@ data "template_file" "task_definition_json" {
   vars {
     container_memory_limit = "${var.container_memory_limit}"
     container_name         = "${var.project_name}"
-    docker_image           = "${aws_ecr_repository.ecr_repository.repository_url}:latest"
+    docker_image           = "${aws_ecr_repository.ecr_repository.repository_url}:${var.docker_image}"
     aws_secret_group       = "${aws_secretsmanager_secret.secrets_manager.name}"
     aws_region             = "${var.region}"
     aws_access_key_id      = "${aws_iam_access_key.secrets.id}"
@@ -232,6 +232,7 @@ resource "aws_key_pair" "ssh_key" {
 
 resource "aws_iam_role" "ecs_instance_role" {
   name = "${var.project_name}-${var.environment}-ecs-instance-role"
+
   assume_role_policy = <<EOF
 {
   "Statement": [
@@ -260,7 +261,7 @@ resource "aws_iam_policy_attachment" "ecs_instance_policy_attachment" {
 }
 
 resource "aws_iam_instance_profile" "ecs_instance_profile" {
-  name  = "${var.project_name}-${var.environment}-ecs-instance-profile"
+  name = "${var.project_name}-${var.environment}-ecs-instance-profile"
   role = "${aws_iam_role.ecs_instance_role.name}"
 }
 
@@ -481,6 +482,7 @@ resource "aws_iam_user_policy" "secrets" {
 
 resource "aws_iam_role" "ecs_service_role" {
   name = "${var.project_name}-${var.environment}-ecs-service-role"
+
   assume_role_policy = <<EOF
 {
   "Statement": [
