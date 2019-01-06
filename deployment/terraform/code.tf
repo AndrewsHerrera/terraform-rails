@@ -171,6 +171,30 @@ resource "aws_ecr_repository" "ecr_repository" {
   name = "${var.project_name}-${var.environment}"
 }
 
+resource "aws_ecr_repository_policy" "ecr_repository_policy" {
+  repository = "${aws_ecr_repository.ecr_repository.name}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CodeBuildAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codebuild.amazonaws.com"
+      },
+      "Action": [
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "ecr:BatchCheckLayerAvailability"
+      ]
+    }
+  ]
+}
+EOF
+}
+
 data "template_file" "task_definition_json" {
   template = "${file("./files/task_definition.json")}"
 
