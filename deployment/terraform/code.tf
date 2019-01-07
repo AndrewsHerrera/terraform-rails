@@ -471,7 +471,7 @@ resource "aws_elasticache_parameter_group" "redis" {
 
 resource "aws_elasticache_cluster" "redis" {
   count                = "${var.redis? 1 : 0 }"
-  cluster_id           = "${substr("${var.project_name}-${var.environment}", 0, 20)}"
+  cluster_id           = "${substr("${var.project_name}-${var.environment}", 0, min(19, length("${var.project_name}-${var.environment}")))}"
   engine               = "${var.elasticache_cluster_redis_engine}"
   engine_version       = "${var.elasticache_cluster_redis_engine_version}"
   node_type            = "${var.elasticache_cluster_redis_node_type}"
