@@ -21,8 +21,7 @@ then
   okcomputer=$(cat ../Gemfile | grep "gem 'okcomputer'")
   if [ -z "$okcomputer" ]
   then
-    printf "\n# Health checks using okcomputer\ngem 'okcomputer', '~> 1.17', '>= 1.17.2'" >> ../Gemfile
-    cp templates/okcomputer.rb.template ../config/initializers/okcomputer.rb
+    printf "\n# Health checks using okcomputer\ngem 'okcomputer', '~> 1.17.3'" >> ../Gemfile
   fi
   secretsmanager=$(cat ../Gemfile | grep "gem 'aws-sdk-secretsmanager'")
   if [ -z "$secretsmanager" ]
