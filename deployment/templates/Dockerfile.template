@@ -19,8 +19,7 @@ RUN set -ex && \
   $DEV_PACKAGES && \
   apk add --no-cache --virtual .app-rundeps $RUNTIME_PACKAGES && \
   bundle install --jobs 2 --retry 5 --without $BUNDLE_WITHOUT && \
-  apk del .app-builddeps && \
-  npm install --global yarn
+  apk del .app-builddeps
 ENV PATH="$PATH:/usr/local/bundle/bin/"
 COPY . $APP
 RUN rm -rf  ${APP}config/initializers && \
