@@ -21,7 +21,7 @@ then
   if [ -z "$secretsmanager" ]
   then
     printf "\n# Connect to aws secret manager\ngem 'aws-sdk-secretsmanager'" >> ../Gemfile
-    cp templates/0_aws_secrets.rb.template ../config/initializers/0_aws_secrets.rb
+    cp templates/aws_secrets.rb.template ../config/initializers/aws_secrets.rb
   fi
   if [ "$TF_VAR_environment" != "production" ]
   then
