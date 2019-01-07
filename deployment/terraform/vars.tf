@@ -10,6 +10,38 @@ variable "key_pair_name" {} # set by create.bash
 variable "ssh_public_key" {} # set by create.bash
 variable "secret_key_base" {} # set by create.bash
 
+variable "redis" {
+  default = false
+}
+
+variable "aws_elasticache_parameter_group_redis_family" {
+  default = "redis4.0"
+}
+
+variable "aws_elasticache_parameter_group_redis_parameter" {
+  default = []
+}
+
+variable "elasticache_cluster_redis_engine" {
+  default = "redis"
+}
+
+variable "elasticache_cluster_redis_engine_version" {
+  default = "4.0.10"
+}
+
+variable "elasticache_cluster_redis_node_type" {
+  default = "cache.t2.micro"
+}
+
+variable "elasticache_cluster_redis_num_cache_nodes" {
+  default = 1
+}
+
+variable "elasticache_cluster_redis_security_group_ids" {
+  default = ""
+}
+
 variable "docker_image" {
   default = "latest"
 }

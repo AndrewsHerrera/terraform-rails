@@ -456,6 +456,35 @@ resource "aws_lb_listener_rule" "redirect_http_to_https" {
   }
 }
 
+resource "aws_elasticache_subnet_group" "redis" {
+  count       = "${var.redis? 1 : 0 }"
+  name        = "${var.project_name}-${var.environment}"
+  subnet_ids  = ["${aws_subnet.private.*.id}"]
+}
+
+resource "aws_elasticache_parameter_group" "redis" {
+  count       = "${var.redis? 1 : 0 }"
+  name        = "${var.project_name}-${var.environment}"
+  family      = "${var.aws_elasticache_parameter_group_redis_family}"
+  parameter   = ["${var.aws_elasticache_parameter_group_redis_parameter}"]
+}
+
+resource "aws_elasticache_cluster" "redis" {
+  count                = "${var.redis? 1 : 0 }"
+  cluster_id           = "${substr("${var.project_name}-${var.environment}", 0, 20)}"
+  engine               = "${var.elasticache_cluster_redis_engine}"
+  engine_version       = "${var.elasticache_cluster_redis_engine_version}"
+  node_type            = "${var.elasticache_cluster_redis_node_type}"
+  num_cache_nodes      = "${var.elasticache_cluster_redis_num_cache_nodes}"
+  security_group_ids   = ["${aws_security_group.internal.id}"]
+  subnet_group_name    = "${aws_elasticache_subnet_group.redis.name}"
+  parameter_group_name = "${aws_elasticache_parameter_group.redis.id}"
+
+  tags {
+    Name  = "${var.project_name}-${var.environment}"
+  }
+}
+
 resource "aws_secretsmanager_secret" "secrets_manager" {
   name = "${var.project_name}-${var.environment}"
 
@@ -470,6 +499,7 @@ data "template_file" "secrets" {
   vars {
     secret_key_base = "${var.secret_key_base}"
     database_url    = "postgres://${aws_db_instance.db.username}:${var.rds_password}@${aws_db_instance.db.endpoint}/${aws_db_instance.db.name}"
+    redis_url = "${var.redis? "redis://${aws_elasticache_cluster.redis.cache_nodes.0.address}:6379/0" : "" }"
   }
 }
 
