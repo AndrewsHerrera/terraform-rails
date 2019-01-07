@@ -1,6 +1,13 @@
 #!/bin/bash
 if [ -n "$AWS_PROFILE" ] && [ -n "$TF_VAR_project_name" ] && [ -n "$TF_VAR_environment" ] && [ -n "$TF_VAR_rds_password" ] && [ -n "$TF_VAR_route53_domain" ] && [ -n "$TF_VAR_region" ]
 then
+  s3_remote_state=$(ls terraform | grep s3_remote_state.tf.$TF_VAR_environment)
+  use_remote_state=$(ls terraform | grep use_remote_state.tf.$TF_VAR_environment)
+  if [ -n "$s3_remote_state" ] && [ -n "$use_remote_state" ]
+  then
+    cat terraform/$s3_remote_state > terraform/s3_remote_state.tf
+    cat terraform/$use_remote_state > terraform/use_remote_state.tf
+  fi
   mv ../config/database.yml ../config/database.yml.tmp
   cat templates/database.yml.template | \
   sed "s/{{project_name}}/$TF_VAR_project_name/" \
@@ -59,7 +66,7 @@ then
   sed "s/{{project_name}}/$TF_VAR_project_name/" | \
   sed "s/{{environment}}/$TF_VAR_environment/" | \
   sed "s/{{force_destroy}}/false/" \
-  > terraform/remote_state.tf
+  > terraform/s3_remote_state.tf
   cd terraform
   terraform apply -target="aws_db_instance.db" --auto-approve
   terraform apply --auto-approve
@@ -73,6 +80,8 @@ then
   cd terraform
   yes yes | terraform init
   cd ..
+  mv terraform/s3_remote_state.tf terraform/s3_remote_state.tf.$TF_VAR_environment
+  mv terraform/use_remote_state.tf terraform/use_remote_state.tf.$TF_VAR_environment
   rm -rf terraform/.terraform terraform/terraform.*
   cat templates/buildspec.yml.template | \
   sed "s/{{project_name}}/$TF_VAR_project_name/" | \
@@ -80,7 +89,7 @@ then
   sed "s/{{route53_domain}}/$TF_VAR_route53_domain/" | \
   sed "s/{{region}}/$TF_VAR_region/" | \
   sed "s/{{ecr_repository_url}}/${ecr_repository_url/com/com\\}/" \
-  > ../buildspec.yml
+  > ../buildspec_$TF_VAR_environment.yml
   $(aws ecr get-login --no-include-email --region us-east-1)
   docker tag $TF_VAR_project_name':latest' $ecr_repository_url':latest'
   docker push $ecr_repository_url':latest'
