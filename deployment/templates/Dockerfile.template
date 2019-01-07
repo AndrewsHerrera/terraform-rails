@@ -1,7 +1,8 @@
 FROM ruby:{{project_ruby_version}}-alpine
 LABEL Author="Andrews Herrera <andrews.herrera@koombea.com>"
 RUN ln -sf /usr/share/zoneinfo/GMT /etc/localtime
-ENV SECRET_KEY_BASE=2fdea1259c6660852864f9726616df64c8cd \
+# This SECRET_KEY_BASE value is just to build the image, it's not used by Rails
+ENV SECRET_KEY_BASE=Whatever \
   RAILS_LOG_TO_STDOUT=enabled \
   RAILS_SERVE_STATIC_FILES=enabled \
   BUNDLE_WITHOUT="development test" \
