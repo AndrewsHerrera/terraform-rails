@@ -1,6 +1,13 @@
 #!/bin/bash
 if [ -n "$TF_VAR_region" ] && [ -n "$TF_VAR_route53_domain" ]
 then
+  s3_remote_state=$(ls terraform | grep s3_remote_state.tf.$TF_VAR_environment)
+  use_remote_state=$(ls terraform | grep use_remote_state.tf.$TF_VAR_environment)
+  if [ -n "$s3_remote_state" ] && [ -n "$use_remote_state" ]
+  then
+    cat terraform/$s3_remote_state > terraform/s3_remote_state.tf
+    cat terraform/$use_remote_state > terraform/use_remote_state.tf
+  fi
   export TF_VAR_project_name="whatever"
   export TF_VAR_environment="whatever"
   export TF_VAR_rds_password="whatever"
@@ -8,7 +15,7 @@ then
   export TF_VAR_secret_key_base="whatever"
   export TF_VAR_key_pair_name="whatever"
   export TF_VAR_ssh_public_key="whatever"
-  rm -rf terraform/remote_state.tmp.tf
+  rm -rf terraform/terraform.* terraform/.terraform
   cd terraform
   terraform init
   terraform state pull > terraform.tfstate
@@ -33,15 +40,17 @@ then
     rm -rf route53_certificate_record.json
   fi
   set -eu
-  cat terraform/remote_state.tf | sed "s/false/true/" > terraform/remote_state.tmp.tf
-  mv terraform/remote_state.tf remote_state.tf.tmp
+  cat terraform/s3_remote_state.tf | sed "s/false/true/" > terraform/s3_remote_state.tmp.tf
+  mv terraform/s3_remote_state.tmp.tf terraform/s3_remote_state.tf
   cd terraform
+  touch s3_remote_state.tfstate
+  terraform state mv -state-out=s3_remote_state.tfstate aws_s3_bucket.remote_state aws_s3_bucket.remote_state
+  terraform destroy --auto-approve
+  terraform state mv -state=s3_remote_state.tfstate -state-out=terraform.tfstate aws_s3_bucket.remote_state aws_s3_bucket.remote_state
   terraform apply -target="aws_s3_bucket.remote_state" --auto-approve
-  terraform destroy -target="aws_db_instance.db" --auto-approve
   terraform destroy --auto-approve
   cd ..
-  mv remote_state.tf.tmp terraform/remote_state.tf
-  rm -rf terraform/remote_state.tmp.tf terraform/.terraform terraform/terraform.*
+  rm -rf terraform/s3_remote_state.tfstate terraform/use_remote_state.tf terraform/s3_remote_state.tf terraform/.terraform terraform/terraform.*
 else
   echo "You have to export these variables"
   echo "export TF_VAR_region=$TF_VAR_region"
