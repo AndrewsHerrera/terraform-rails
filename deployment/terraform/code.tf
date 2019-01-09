@@ -499,7 +499,7 @@ data "template_file" "secrets" {
   vars {
     secret_key_base = "${var.secret_key_base}"
     database_url    = "postgres://${aws_db_instance.db.username}:${var.rds_password}@${aws_db_instance.db.endpoint}/${aws_db_instance.db.name}"
-    redis_url = "${var.redis? "redis://${element(concat(aws_elasticache_cluster.redis.*.cache_nodes.0.address, list("")), 0)}:6379/0" : "" }"
+    redis_url = "${var.redis? "redis://${element(concat(list(replace(replace(jsonencode(aws_elasticache_cluster.redis.*.cache_nodes), "/.*address...([a-z0-9\\.\\-]+)\".*/" , "$1"), "[]", "")), list("")), 0)}:6379/0" : "" }"
   }
 }
 
