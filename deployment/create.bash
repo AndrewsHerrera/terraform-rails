@@ -23,6 +23,12 @@ then
   then
     printf "\n# Health checks using okcomputer\ngem 'okcomputer', '~> 1.17.3'" >> ../Gemfile
   fi
+  silencer=$(cat ../Gemfile | grep "gem 'silencer'")
+  if [ -z "$silencer" ]
+  then
+    printf "\n# Remove health checks from the logs\ngem 'silencer', '~> 1.0.1'" >> ../Gemfile
+    cp templates/silencer.rb.template ../config/initializers/silencer.rb
+  fi
   secretsmanager=$(cat ../Gemfile | grep "gem 'aws-sdk-secretsmanager'")
   if [ -z "$secretsmanager" ]
   then
