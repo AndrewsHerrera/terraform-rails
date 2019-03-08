@@ -31,7 +31,8 @@ phases:
   build:
     commands:
       - ok && chmod 700 $CODEBUILD_SRC_DIR/bin/entrypoint
-      - ok && docker build -t {{project_name}} .
+      - ok && docker pull {{ecr_repository_url}}:latest
+      - ok && docker build --cache-from={{ecr_repository_url}}:latest -t {{project_name}} .
       - ok && docker tag {{project_name}}:latest {{ecr_repository_url}}:latest
       - ok && docker tag {{project_name}}:latest {{ecr_repository_url}}:$date
       - ok && docker push {{ecr_repository_url}}:latest
