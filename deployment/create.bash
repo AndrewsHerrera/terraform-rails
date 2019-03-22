@@ -95,7 +95,7 @@ then
   sed "s/{{region}}/$TF_VAR_region/" | \
   sed "s/{{ecr_repository_url}}/${ecr_repository_url/com/com\\}/" \
   > ../buildspec_$TF_VAR_environment.yml
-  $(aws ecr get-login --no-include-email --region us-east-1)
+  $(aws ecr get-login --no-include-email --region $TF_VAR_region)
   docker tag $TF_VAR_project_name':latest' $ecr_repository_url':latest'
   docker push $ecr_repository_url':latest'
 else
