@@ -35,6 +35,11 @@ Copy the deployment folder to your rails application like this
 cp -r ~/Documents/terraform-rails/deployment ~/Documents/my_rails_application/
 ```
 
+Now go to the deployment folder from your rails application root path
+```
+cd deployment
+```
+
 If you need to use redis then do this, its default value is false
 ```
 export TF_VAR_redis=true
