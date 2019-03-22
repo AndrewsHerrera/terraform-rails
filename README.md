@@ -29,15 +29,18 @@ Now that you have terraform-rails locally, go to the application folder that you
 ```
 cd ~/Documents/my_rails_application
 ```
+
 Copy the deployment folder to your rails application like this
 ```
 cp -r ~/Documents/terraform-rails/deployment ~/Documents/my_rails_application/
 ```
+
 If you need to use redis then do this, its default value is false
 ```
 export TF_VAR_redis=true
 ```
-Required environment variables. The AWS resource names will have project_name-environment added so if you want to have a better nomenclature don't put the environment name in TF_VAR_project_name. If you use the name production as your TF_VAR_environment value, you will have the application running in your naked domain
+
+The AWS resource names will have project_name-environment added so if you want to have a better nomenclature don't put the environment name in TF_VAR_project_name value. If you use the name production as the TF_VAR_environment value, you will have the application running in your naked domain otherwise you will have it like this... staging.mydomain.com <TF_VAR_environment>.<TF_VAR_route53_domain>. The next are the required variables
 ```
 export AWS_PROFILE=
 export TF_VAR_project_name=
