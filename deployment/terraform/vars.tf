@@ -14,6 +14,10 @@ variable "redis" {
   default = false
 }
 
+variable "root_volume_encrypted" {
+  default = false
+}
+
 variable "aws_elasticache_parameter_group_redis_family" {
   default = "redis4.0"
 }
@@ -93,7 +97,7 @@ variable "engine" {
 }
 
 variable "engine_version" {
-  default = "10.4"
+  default = "10.6"
 }
 
 variable "instance_class" {
@@ -109,6 +113,10 @@ variable "copy_tags_to_snapshot" {
 }
 
 variable "ec2_instance_type" {
+  default = "t2.micro"
+}
+
+variable "bastion_instance_type" {
   default = "t2.micro"
 }
 
@@ -137,7 +145,7 @@ variable "desired_capacity" {
 }
 
 variable "health_check_grace_period" {
-  default = 50
+  default = 300
 }
 
 variable "desired_count" {

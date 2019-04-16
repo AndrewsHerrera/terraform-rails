@@ -26,7 +26,7 @@ phases:
     commands:
       - ok && cp $CODEBUILD_SRC_DIR/deployment/terraform/s3_remote_state.tf.$TF_VAR_environment $CODEBUILD_SRC_DIR/deployment/terraform/s3_remote_state.tf
       - ok && cp $CODEBUILD_SRC_DIR/deployment/terraform/use_remote_state.tf.$TF_VAR_environment $CODEBUILD_SRC_DIR/deployment/terraform/use_remote_state.tf
-      - ok && $(aws ecr get-login --no-include-email --region us-east-1)
+      - ok && $(aws ecr get-login --no-include-email --region {{region}})
       - ok && date=$(date +%F-%s)
   build:
     commands:
