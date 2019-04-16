@@ -40,7 +40,7 @@ resource "aws_security_group" "ssh" {
   vpc_id = "${aws_vpc.main.id}"
 
   ingress {
-    from_port   = 0
+    from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
@@ -63,7 +63,7 @@ resource "aws_security_group" "http" {
   vpc_id = "${aws_vpc.main.id}"
 
   ingress {
-    from_port   = 0
+    from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
@@ -86,7 +86,7 @@ resource "aws_security_group" "https" {
   vpc_id = "${aws_vpc.main.id}"
 
   ingress {
-    from_port   = 0
+    from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
@@ -290,19 +290,31 @@ resource "aws_iam_instance_profile" "ecs_instance_profile" {
   role = "${aws_iam_role.ecs_instance_role.name}"
 }
 
-resource "aws_launch_configuration" "launch_configuration" {
-  name                 = "${var.project_name}-${var.environment}-${var.date}"
-  image_id             = "${data.aws_ami.ecs_ami.id}"
-  instance_type        = "${var.ec2_instance_type}"
-  user_data            = "${data.template_file.user_data.rendered}"
-  key_name             = "${var.key_pair_name}"
-  iam_instance_profile = "${aws_iam_instance_profile.ecs_instance_profile.name}"
-  enable_monitoring    = "${var.enable_monitoring}"
-  security_groups      = ["${aws_security_group.internal.id}", "${aws_security_group.ssh.id}", "${aws_security_group.http.id}", "${aws_security_group.https.id}"]
+resource "aws_launch_template" "template" {
+  name_prefix   = "${var.project_name}-${var.environment}-"
+  image_id      = "${data.aws_ami.ecs_ami.id}"
+  instance_type = "${var.ec2_instance_type}"
+  user_data     = "${base64encode(data.template_file.user_data.rendered)}"
+  key_name      = "${var.key_pair_name}"
 
-  root_block_device {
-    volume_type = "${var.volume_type}"
-    volume_size = "${var.volume_size}"
+  iam_instance_profile {
+    name = "${aws_iam_instance_profile.ecs_instance_profile.name}"
+  }
+
+  monitoring {
+    enabled = true
+  }
+
+  vpc_security_group_ids = ["${aws_security_group.internal.id}", "${aws_security_group.ssh.id}", "${aws_security_group.http.id}", "${aws_security_group.https.id}"]
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      encrypted   = "${var.root_volume_encrypted}"
+      volume_type = "${var.volume_type}"
+      volume_size = "${var.volume_size}"
+    }
   }
 
   lifecycle {
@@ -311,12 +323,19 @@ resource "aws_launch_configuration" "launch_configuration" {
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
-  name                      = "${var.project_name}-${var.environment}"
-  launch_configuration      = "${aws_launch_configuration.launch_configuration.id}"
-  vpc_zone_identifier       = ["${aws_subnet.public.*.id}"]
-  min_size                  = "${var.min_size}"
-  max_size                  = "${var.max_size}"
-  desired_capacity          = "${var.desired_capacity}"
+  name = "${var.project_name}-${var.environment}"
+
+  launch_template {
+    id      = "${aws_launch_template.template.id}"
+    version = "$Latest"
+  }
+
+  vpc_zone_identifier = ["${aws_subnet.private.*.id}"]
+
+  min_size         = "${var.min_size}"
+  max_size         = "${var.max_size}"
+  desired_capacity = "${var.desired_capacity}"
+
   health_check_grace_period = "${var.health_check_grace_period}"
 
   tag {
@@ -327,6 +346,66 @@ resource "aws_autoscaling_group" "autoscaling_group" {
 
   lifecycle {
     create_before_destroy = true
+  }
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "bastion" {
+  ami                         = "${data.aws_ami.ubuntu.id}"
+  instance_type               = "${var.bastion_instance_type}"
+  disable_api_termination     = false
+  key_name                    = "${var.key_pair_name}"
+  subnet_id                   = "${aws_subnet.public.*.id[0]}"
+  vpc_security_group_ids      = ["${aws_security_group.ssh.id}"]
+  associate_public_ip_address = true
+  iam_instance_profile        = "${aws_iam_instance_profile.ecs_instance_profile.id}"
+
+  root_block_device {
+    volume_size           = "10"
+    delete_on_termination = "true"
+  }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              apt update
+              apt -y upgrade
+              apt -y install python
+              EOF
+
+  tags {
+    Name = "${var.project_name}-${var.environment}-bastion-host"
+  }
+}
+
+resource "aws_eip" "eip" {
+  vpc = true
+
+  tags {
+    Name = "${var.project_name}-${var.environment}"
+  }
+}
+
+resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id = "${aws_eip.eip.id}"
+  subnet_id     = "${aws_subnet.public.*.id[0]}"
+
+  tags {
+    Name = "${var.project_name}-${var.environment}"
   }
 }
 
@@ -347,7 +426,7 @@ resource "aws_route_table" "route_table" {
   }
 
   tags = {
-    Name = "${var.project_name}-${var.environment}"
+    Name = "${var.project_name}-${var.environment}-public"
   }
 }
 
@@ -355,6 +434,25 @@ resource "aws_route_table_association" "route_table_association" {
   count          = "${length(var.public_subnets)}"
   subnet_id      = "${aws_subnet.public.*.id[count.index]}"
   route_table_id = "${aws_route_table.route_table.id}"
+}
+
+resource "aws_route_table" "route_table_private" {
+  vpc_id = "${aws_vpc.main.id}"
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_nat_gateway.nat_gateway.id}"
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-private"
+  }
+}
+
+resource "aws_route_table_association" "route_table_association_private" {
+  count          = "${length(var.private_subnets)}"
+  subnet_id      = "${aws_subnet.private.*.id[count.index]}"
+  route_table_id = "${aws_route_table.route_table_private.id}"
 }
 
 resource "aws_lb" "public_lb" {
@@ -458,16 +556,16 @@ resource "aws_lb_listener_rule" "redirect_http_to_https" {
 }
 
 resource "aws_elasticache_subnet_group" "redis" {
-  count       = "${var.redis? 1 : 0 }"
-  name        = "${var.project_name}-${var.environment}"
-  subnet_ids  = ["${aws_subnet.private.*.id}"]
+  count      = "${var.redis? 1 : 0 }"
+  name       = "${var.project_name}-${var.environment}"
+  subnet_ids = ["${aws_subnet.private.*.id}"]
 }
 
 resource "aws_elasticache_parameter_group" "redis" {
-  count       = "${var.redis? 1 : 0 }"
-  name        = "${var.project_name}-${var.environment}"
-  family      = "${var.aws_elasticache_parameter_group_redis_family}"
-  parameter   = ["${var.aws_elasticache_parameter_group_redis_parameter}"]
+  count     = "${var.redis? 1 : 0 }"
+  name      = "${var.project_name}-${var.environment}"
+  family    = "${var.aws_elasticache_parameter_group_redis_family}"
+  parameter = ["${var.aws_elasticache_parameter_group_redis_parameter}"]
 }
 
 resource "aws_elasticache_cluster" "redis" {
@@ -482,7 +580,7 @@ resource "aws_elasticache_cluster" "redis" {
   parameter_group_name = "${aws_elasticache_parameter_group.redis.id}"
 
   tags {
-    Name  = "${var.project_name}-${var.environment}"
+    Name = "${var.project_name}-${var.environment}"
   }
 }
 
@@ -500,7 +598,7 @@ data "template_file" "secrets" {
   vars {
     secret_key_base = "${var.secret_key_base}"
     database_url    = "postgres://${aws_db_instance.db.username}:${var.rds_password}@${aws_db_instance.db.endpoint}/${aws_db_instance.db.name}"
-    redis_url = "${var.redis? "redis://${element(concat(list(replace(replace(jsonencode(aws_elasticache_cluster.redis.*.cache_nodes), "/.*address...([a-z0-9\\.\\-]+)\".*/" , "$1"), "[]", "")), list("")), 0)}:6379/0" : "" }"
+    redis_url       = "${var.redis? "redis://${element(concat(list(replace(replace(jsonencode(aws_elasticache_cluster.redis.*.cache_nodes), "/.*address...([a-z0-9\\.\\-]+)\".*/" , "$1"), "[]", "")), list("")), 0)}:6379/0" : "" }"
   }
 }
 
